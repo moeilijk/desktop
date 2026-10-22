@@ -131,6 +131,12 @@ jobs:
               if($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
           }
 
+          # The stable-35.0 blueprint calls os.path.join without importing os.
+          $blueprint = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\etc\blueprints\locations\craft-blueprints-nextcloud\nextcloud-client\nextcloud-client.py"
+          if (-not (Select-String -Path $blueprint -Pattern '^import os$' -Quiet)) {
+              (Get-Content $blueprint) -replace '^import info$', "import info`nimport os" | Set-Content $blueprint
+          }
+
           craft --src-dir ${{ github.workspace }} --package nextcloud-client
           Get-ChildItem -Path "${{ github.workspace }}\${{ env.CRAFT_TARGET }}" -Recurse -Include *.exe,*.msi -ErrorAction SilentlyContinue |
               Where-Object { $_.LastWriteTime -gt (Get-Date).AddHours(-2) -and $_.FullName -match '\\tmp\\' } |
