@@ -98,6 +98,27 @@ private Q_SLOTS:
         }
     }
 
+    //! @brief Verifies that legacy accounts on the same server can be told apart
+    //! in the import dialog when the legacy config has no display name.
+    void testLegacyAccountLabel_data()
+    {
+        QTest::addColumn<QString>("displayName");
+        QTest::addColumn<QString>("davUser");
+        QTest::addColumn<QString>("expected");
+
+        QTest::newRow("display name") << u"Alice A."_s << u"alice"_s << u"Alice A. - https://cloud.example.com/"_s;
+        QTest::newRow("no display name") << QString{} << u"alice"_s << u"alice - https://cloud.example.com/"_s;
+    }
+
+    void testLegacyAccountLabel()
+    {
+        QFETCH(QString, displayName);
+        QFETCH(QString, davUser);
+        QFETCH(QString, expected);
+
+        QCOMPARE(AccountManager::legacyAccountLabel(displayName, davUser, u"https://cloud.example.com/"_s), expected);
+    }
+
     // ---------------------------------------------------------------------------
     // accountFromUserId – plain ASCII domain
     // ---------------------------------------------------------------------------

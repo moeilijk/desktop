@@ -83,6 +83,13 @@ public:
      */
     static void backwardMigrationSettingsKeys(QStringList *deleteKeys, QStringList *ignoreKeys);
 
+    /**
+     * Returns the label of a legacy account in the import dialog: the display
+     * name, or the dav user when the legacy config has no display name,
+     * followed by the server URL.
+     */
+    static QString legacyAccountLabel(const QString &displayName, const QString &davUser, const QString &url);
+
 public Q_SLOTS:
     /// Saves account data when adding user, when updating e.g. dav user, not including the credentials
     void saveAccount(const OCC::AccountPtr &newAccountData);

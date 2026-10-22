@@ -228,10 +228,10 @@ bool AccountManager::restoreFromLegacySettings()
                 for (const auto &accId : childGroups) {
                     oCSettings->beginGroup(accId);
                     const auto displayName = oCSettings->value(QLatin1String(displayNameC)).toString();
+                    const auto davUser = oCSettings->value(QLatin1String(davUserC)).toString();
                     const auto urlStr = oCSettings->value(QLatin1String(urlC)).toString();
                     oCSettings->endGroup(); // accId
-                    const auto label = QString("%1 - %2").arg(displayName, urlStr);
-                    accountsToDisplay.push_back({accId, label});
+                    accountsToDisplay.push_back({accId, legacyAccountLabel(displayName, davUser, urlStr)});
                 }
                 oCSettings->endGroup(); // accountsC
 
@@ -926,6 +926,11 @@ AccountStatePtr AccountManager::accountFromFileProviderDomainIdentifier(const QS
     return {};
 }
 #endif
+
+QString AccountManager::legacyAccountLabel(const QString &displayName, const QString &davUser, const QString &url)
+{
+    return QStringLiteral("%1 - %2").arg(displayName.isEmpty() ? davUser : displayName, url);
+}
 
 AccountPtr AccountManager::createAccount()
 {
