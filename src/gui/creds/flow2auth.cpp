@@ -110,8 +110,8 @@ void Flow2Auth::fetchNewToken(const TokenAction action)
                 loginUrl.setQuery(query);
             };
 
-            if (const auto userNameFromCredentials = _account->userFromCredentials(); !userNameFromCredentials.isEmpty()) {
-                setUserNameForLogin(userNameFromCredentials, _loginUrl);
+            if (const auto accountUserName = _account->davUser(); !accountUserName.isEmpty()) {
+                setUserNameForLogin(accountUserName, _loginUrl);
             } else if (const auto currentUserName = Utility::getCurrentUserName(); !WIN_DISABLE_USERNAME_PREFILL && !currentUserName.isEmpty()) {
                 setUserNameForLogin(currentUserName, _loginUrl);
             }

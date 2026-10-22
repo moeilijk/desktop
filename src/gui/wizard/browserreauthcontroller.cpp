@@ -5,6 +5,8 @@
 
 #include "browserreauthcontroller.h"
 
+#include "account.h"
+
 #include <QCoreApplication>
 
 namespace OCC {
@@ -140,6 +142,14 @@ void BrowserReAuthController::slotAuthResult(Flow2Auth::Result result, const QSt
     case Flow2Auth::LoggedIn:
         setAuthPolling(false);
         setBusy(false);
+        if (const auto accountUser = _account ? _account->davUser() : QString{};
+            !accountUser.isEmpty() && QString::compare(accountUser, user, Qt::CaseInsensitive) != 0) {
+            setErrorText(QCoreApplication::translate(
+                "AccountWizardController",
+                "You logged in as \"%1\", but this account belongs to \"%2\". Please log in as \"%2\".")
+                             .arg(user, accountUser));
+            break;
+        }
         setFinished(true);
         Q_EMIT credentialsReady(user, appPassword);
         break;

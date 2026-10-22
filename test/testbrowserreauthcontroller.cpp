@@ -25,6 +25,7 @@
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTest>
+#include <QUrlQuery>
 
 #include <algorithm>
 #include <memory>
@@ -189,6 +190,7 @@ private Q_SLOTS:
 
         const auto account = AccountManager::createAccount();
         account->setUrl(QUrl(QStringLiteral("http://cloud.example")));
+        account->setDavUser(QStringLiteral("alice"));
         auto *const networkAccessManager = new FakeQNAM({});
         configureSuccessfulLoginFlow(networkAccessManager);
         auto *const credentials = new TestWebFlowCredentials(networkAccessManager);
@@ -260,6 +262,59 @@ private Q_SLOTS:
         QVERIFY(!controller.finished());
         QCOMPARE(controller.errorText(), QStringLiteral("Authentication failed."));
         QCOMPARE(errorSpy.count(), 1);
+    }
+
+    void rejectsCredentialsOfAnotherUser()
+    {
+        const auto account = AccountManager::createAccount();
+        account->setDavUser(QStringLiteral("alice"));
+        BrowserReAuthController controller(account.data());
+        QSignalSpy credentialsSpy(&controller, &BrowserReAuthController::credentialsReady);
+
+        controller.slotAuthResult(Flow2Auth::LoggedIn, {}, QStringLiteral("bob"), QStringLiteral("app-password"));
+
+        QVERIFY(!controller.finished());
+        QCOMPARE(credentialsSpy.count(), 0);
+        QVERIFY(controller.errorText().contains(QStringLiteral("bob")));
+        QVERIFY(controller.errorText().contains(QStringLiteral("alice")));
+    }
+
+    void acceptsCredentialsOfTheAccountUserIgnoringCase()
+    {
+        const auto account = AccountManager::createAccount();
+        account->setDavUser(QStringLiteral("alice"));
+        BrowserReAuthController controller(account.data());
+        QSignalSpy credentialsSpy(&controller, &BrowserReAuthController::credentialsReady);
+
+        controller.slotAuthResult(Flow2Auth::LoggedIn, {}, QStringLiteral("Alice"), QStringLiteral("app-password"));
+
+        QVERIFY(controller.finished());
+        QCOMPARE(credentialsSpy.count(), 1);
+    }
+
+    void prefillsTheLoginWithTheAccountUser()
+    {
+        BrowserOpeningHandler browserOpeningHandler;
+        QDesktopServices::setUrlHandler(
+            QStringLiteral("http"),
+            &browserOpeningHandler,
+            "openUrl");
+        QSignalSpy browserSpy(&browserOpeningHandler, &BrowserOpeningHandler::urlOpened);
+
+        const auto account = AccountManager::createAccount();
+        account->setUrl(QUrl(QStringLiteral("http://cloud.example")));
+        account->setServerVersion(QStringLiteral("35.0.0"));
+        account->setDavUser(QStringLiteral("alice"));
+        auto *const networkAccessManager = new FakeQNAM({});
+        configureSuccessfulLoginFlow(networkAccessManager);
+        account->setCredentials(new TestWebFlowCredentials(networkAccessManager));
+
+        BrowserReAuthController controller(account.data());
+        controller.start();
+
+        QTRY_COMPARE_WITH_TIMEOUT(browserSpy.count(), 1, 5000);
+        const auto openedUrl = browserSpy.at(0).at(0).toUrl();
+        QCOMPARE(QUrlQuery(openedUrl).queryItemValue(QStringLiteral("user")), QStringLiteral("alice"));
     }
 
     void keepsPollingWhenOpeningTheBrowserFails()
